@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vinyylihylly</title>
+  <!-- Vinyylilevy-favicon – näkyy selaimen välilehdessä ja kirjanmerkeissä -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231a1a1a'/%3E%3Ccircle cx='50' cy='50' r='32' fill='%23333'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%231a1a1a'/%3E%3Ccircle cx='50' cy='50' r='6' fill='%23c8a96e'/%3E%3C/svg%3E" />
   <style>
     /* =============================================
        YLEISET TYYLIT
@@ -139,6 +141,17 @@
     }
 
     #asetukset-tallenna:hover { background: #333; }
+
+    #paivita-kokoelma-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    #paivita-kokoelma-btn:hover { background: #f0f0f0; }
     #asetukset-viesti {
       font-size: 0.85rem;
       margin-top: 0.75rem;
@@ -639,7 +652,16 @@
        Sivun otsikko ja hakupalkki
   ============================================= -->
   <header>
-    <h1>🎵 Vinyylihylly</h1>
+    <h1>
+      <svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:8px;">
+        <circle cx="50" cy="50" r="48" fill="#fff" opacity="0.15"/>
+        <circle cx="50" cy="50" r="48" fill="none" stroke="#fff" stroke-width="2"/>
+        <circle cx="50" cy="50" r="32" fill="#333"/>
+        <circle cx="50" cy="50" r="18" fill="#1a1a1a"/>
+        <circle cx="50" cy="50" r="6" fill="#c8a96e"/>
+      </svg>
+      Vinyylihylly
+    </h1>
     <div id="haku-wrapper">
       <input
         type="search"
@@ -669,6 +691,7 @@
 
       <div id="asetukset-napit">
         <button id="asetukset-peruuta">Peruuta</button>
+        <button id="paivita-kokoelma-btn">↺ Päivitä kokoelma</button>
         <button id="asetukset-tallenna">Tallenna</button>
       </div>
       <p id="asetukset-viesti"></p>
@@ -764,12 +787,6 @@
         <div id="kappaleet-lista"></div>
       </div>
 
-      <!-- Discogs Notes -muistiinpano -->
-      <div id="modaali-notes" style="display:none; padding: 0 1.5rem 1rem; border-top: 1px solid #eee;">
-        <h3 style="font-size:0.9rem; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem;">Muistiinpanot (Discogs Notes)</h3>
-        <p class="notes-sisalto" style="font-size:0.88rem; color:#444; line-height:1.6; white-space:pre-wrap;"></p>
-      </div>
-
       <!-- Hyllypaikan muokkaus -->
       <div id="hyllypaikka-osio">
         <label for="hyllypaikka-input">Hyllypaikka</label>
@@ -796,7 +813,7 @@
     // 2) Discogs API -token
     //    Luo uusi osoitteessa: Discogs → Settings → Developers → Generate Token
     //    Liitä token lainausmerkkien väliin alla:
-    const DISCOGS_TOKEN = "AtDvnoODsBUBsnFxjvxuZUijSKlLYSirBJLfgfER";
+    const DISCOGS_TOKEN = "LIITÄ_DISCOGS_TOKEN_TÄHÄN";
     //
     // 3) GitHub-asetukset (hyllypaikkoja varten, voi täyttää myöhemmin)
     //    GitHub Personal Access Token luodaan:
@@ -911,6 +928,18 @@
         kaikki_levyt = kaikki;
         lataus.style.display = "none";
 
+        // Tallennetaan collection-kohtaiset muistiinpanot (notes) välimuistiin.
+        // Discogs collection API palauttaa notes-taulukon jokaiselle levylle.
+        // Taulukossa on käyttäjän itse kirjoittamat kenttäarvot (esim. "Rock, Blues").
+        kaikki.forEach(release => {
+          const notesArr = release.notes || [];
+          if (notesArr.length > 0) {
+            // Yhdistetään kaikki notes-kentät yhdeksi haettavaksi tekstiksi
+            notes_cache[release.id] = notesArr
+              .map(n => (n.value || "")).join(" ").toLowerCase();
+          }
+        });
+
         // Ladataan hyllypaikat GitHubista
         await lataaHyllypaikat();
 
@@ -982,8 +1011,6 @@
             if (r.ok) {
               const data = await r.json();
               kappaleet_cache[levy.id] = (data.tracklist || []).map(k => k.title.toLowerCase());
-              // Tallennetaan myös notes-muistiinpano välimuistiin
-              notes_cache[levy.id] = (data.notes || "").toLowerCase();
             }
           } catch {
             // Ohitetaan virhe, jatketaan seuraavaan
@@ -1197,18 +1224,6 @@
       const lista = document.getElementById("kappaleet-lista");
       lista.innerHTML = "<li>Ladataan…</li>";
 
-      // Näytetään notes jos jo ladattu välimuistista
-      const notesEl = document.getElementById("modaali-notes");
-      const notesArvo = notes_cache[release.id];
-      if (notesEl) {
-        if (notesArvo) {
-          notesEl.style.display = "block";
-          notesEl.querySelector(".notes-sisalto").textContent = notesArvo;
-        } else {
-          notesEl.style.display = "none";
-        }
-      }
-
       // Avataan modaali
       modaaliTausta.classList.add("auki");
       document.body.style.overflow = "hidden"; // Estetään taustascroolaus
@@ -1220,19 +1235,6 @@
         });
         const data = await r.json();
         lista.innerHTML = "";
-
-        // Päivitetään notes-osio nyt kun data on ladattu
-        const notesElFetch = document.getElementById("modaali-notes");
-        if (notesElFetch) {
-          if (data.notes) {
-            notesElFetch.style.display = "block";
-            notesElFetch.querySelector(".notes-sisalto").textContent = data.notes;
-            // Tallennetaan myös välimuistiin
-            notes_cache[release.id] = data.notes.toLowerCase();
-          } else {
-            notesElFetch.style.display = "none";
-          }
-        }
 
         // =============================================
         // KAPPALEIDEN RYHMITTELY PUOLEN MUKAAN
@@ -1636,9 +1638,30 @@
     }
 
     // Asetukset-modaalin tallenna-nappi
-    // (GitHub-token asetetaan koodiin, ei tallenneta selaimeen)
     asetuksetTallenna.addEventListener("click", () => {
       asetuksetViesti.textContent = "ℹ️ Muokkaa GitHub-token suoraan index.html-tiedostoon kohtaan GITHUB_TOKEN.";
+    });
+
+    // =============================================
+    // PÄIVITÄ KOKOELMA -NAPPI
+    // Tyhjentää välimuistin (kappaleet ja notes)
+    // ja lataa kaiken uudelleen Discogsista.
+    // Hyödyllinen kun olet päivittänyt noteseja
+    // tai lisännyt levyjä Discogsiin.
+    // =============================================
+    document.getElementById("paivita-kokoelma-btn").addEventListener("click", async () => {
+      const viesti = document.getElementById("asetukset-viesti");
+      viesti.textContent = "Päivitetään kokoelmaa…";
+
+      // Tyhjennetään välimuistit
+      kappaleet_cache = {};
+      notes_cache     = {};
+      kaikki_levyt    = [];
+
+      suljeAsetukset();
+
+      // Ladataan kaikki uudelleen
+      await lataaKaikkiLevyt(DISCOGS_TOKEN);
     });
   </script>
 </body>
