@@ -448,8 +448,7 @@
        API-AVAIMEN SYÖTTÖLOMAKE
        Näytetään ensimmäisellä käyttökerralla,
        jos token ei ole vielä selaimen muistissa.
-       Token tallennetaan localStorage:een eikä
-       koodiin, joten se pysyy turvassa.
+       Token on kirjoitettu suoraan koodiin.
     ============================================= */
     #token-nakyma {
       display: flex;
@@ -548,12 +547,6 @@
   <div id="asetukset-tausta">
     <div id="asetukset-modaali">
       <h2>⚙ Asetukset</h2>
-
-      <div class="asetus-rivi">
-        <label for="asetukset-discogs-input">Discogs API -token</label>
-        <input type="password" id="asetukset-discogs-input" placeholder="Discogs token" autocomplete="off" />
-        <p class="asetus-tila" id="discogs-tila"></p>
-      </div>
 
       <div class="asetus-rivi">
         <label for="asetukset-github-input">GitHub Personal Access Token <small style="color:#aaa">(hyllypaikkoja varten)</small></label>
@@ -667,20 +660,26 @@
 
   <script>
     // =============================================
-    // ASETUKSET
-    // Vaihda käyttäjänimesi tähän!
-    // =============================================
+    // *** ASETUKSET – TÄYTÄ NÄMÄ TIEDOT ***
+    //
+    // 1) Discogs-käyttäjänimesi
     const DISCOGS_KAYTTAJA = "Joona1";
-
-    // GitHub-asetukset hyllypaikkojen tallennusta varten.
-    // TÄYTÄ NÄMÄ kun olet luonut GitHub-repositorion:
-    //   GITHUB_OMISTAJA = GitHub-käyttäjänimesi
-    //   GITHUB_REPO     = repositorion nimi (esim. "vinyyli")
-    // GitHub Personal Access Token luodaan:
-    //   GitHub → Settings → Developer settings → Personal access tokens
-    const GITHUB_OMISTAJA  = ""; // esim. "Joona1"
-    const GITHUB_REPO      = ""; // esim. "vinyyli"
-    const GITHUB_TIEDOSTO  = "locations.json"; // tiedosto johon hyllypaikat tallennetaan
+    //
+    // 2) Discogs API -token
+    //    Luo uusi osoitteessa: Discogs → Settings → Developers → Generate Token
+    //    Liitä token lainausmerkkien väliin alla:
+    const DISCOGS_TOKEN = "AtDvnoODsBUBsnFxjvxuZUijSKlLYSirBJLfgfER";
+    //
+    // 3) GitHub-asetukset (hyllypaikkoja varten, voi täyttää myöhemmin)
+    //    GitHub Personal Access Token luodaan:
+    //    GitHub → Settings → Developer settings → Personal access tokens
+    const GITHUB_OMISTAJA = "";  // esim. "joonalehtinen96-dotcom"
+    const GITHUB_REPO     = "";  // esim. "vinyyli"
+    const GITHUB_TOKEN    = "LIITÄ_GITHUB_TOKEN_TÄHÄN";
+    //
+    // *** ÄLÄ MUUTA MITÄÄN TÄMÄN RIVIN ALAPUOLELLA ***
+    // =============================================
+    const GITHUB_TIEDOSTO = "locations.json";
 
     // =============================================
     // MUUTTUJAT
@@ -717,44 +716,11 @@
 
     // =============================================
     // KÄYNNISTYS
-    // Tarkistetaan onko token jo tallennettu selaimeen
+    // Token on kirjoitettu suoraan koodiin yllä,
+    // joten sivu lataa levyt heti ilman kirjautumista.
     // =============================================
-    const tallennettuToken = localStorage.getItem("discogs_token");
-    if (tallennettuToken) {
-      // Token löytyy – näytetään suoraan levyt
-      naytaPaaSisalto();
-      lataaKaikkiLevyt(tallennettuToken);
-    }
-
-    // =============================================
-    // TOKEN-LOMAKE
-    // Käyttäjä syöttää tokenin ensimmäisellä kerralla
-    // =============================================
-    tokenBtn.addEventListener("click", async () => {
-      const token = tokenInput.value.trim();
-      if (!token) {
-        tokenVirhe.textContent = "Syötä token ennen jatkamista.";
-        return;
-      }
-      tokenVirhe.textContent = "";
-      tokenBtn.textContent = "Tarkistetaan…";
-
-      // Testataan toimiiko token hakemalla yksi sivu
-      const ok = await testaaToken(token);
-      if (ok) {
-        localStorage.setItem("discogs_token", token);
-        naytaPaaSisalto();
-        lataaKaikkiLevyt(token);
-      } else {
-        tokenVirhe.textContent = "Token ei toiminut. Tarkista se ja yritä uudelleen.";
-        tokenBtn.textContent = "Tallenna ja lataa levyt";
-      }
-    });
-
-    // Näppäimistötuki: Enter-nappi token-kentässä
-    tokenInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") tokenBtn.click();
-    });
+    naytaPaaSisalto();
+    lataaKaikkiLevyt(DISCOGS_TOKEN);
 
     // Piilotetaan token-näkymä ja näytetään pääsisältö
     function naytaPaaSisalto() {
@@ -836,8 +802,7 @@
       if (!GITHUB_OMISTAJA || !GITHUB_REPO) return;
 
       try {
-        const token = localStorage.getItem("github_token");
-        const headers = token ? { Authorization: `token ${token}` } : {};
+        const headers = GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {};
         const url = `https://api.github.com/repos/${GITHUB_OMISTAJA}/${GITHUB_REPO}/contents/${GITHUB_TIEDOSTO}`;
         const r = await fetch(url, { headers });
 
@@ -974,7 +939,7 @@
       avattu_levy = release;
       const info    = release.basic_information;
       const artisti = info.artists?.[0]?.name || "Tuntematon";
-      const token   = localStorage.getItem("discogs_token");
+      const token   = DISCOGS_TOKEN;
 
       // Täytetään perustiedot
       document.getElementById("modaali-nimi").textContent      = info.title;
@@ -1051,12 +1016,7 @@
       }
 
       // Tarkistetaan GitHub-token
-      let githubToken = localStorage.getItem("github_token");
-      if (!githubToken) {
-        githubToken = prompt("Syötä GitHub Personal Access Token hyllypaikkojen tallentamiseksi:");
-        if (!githubToken) return;
-        localStorage.setItem("github_token", githubToken);
-      }
+      const githubToken = GITHUB_TOKEN;
 
       // Päivitetään hyllypaikka paikallisesti
       if (uusiPaikka) {
@@ -1142,21 +1102,16 @@
     const discogsTila       = document.getElementById("discogs-tila");
     const githubTila        = document.getElementById("github-tila");
 
-    // Avaa asetukset-modaali ja näyttää tokenien tilan
+    // Avaa asetukset-modaali
     asetuksetBtn.addEventListener("click", () => {
-      const dt = localStorage.getItem("discogs_token");
-      const gt = localStorage.getItem("github_token");
-
-      // Näytetään onko token jo tallennettu
-      discogsTila.textContent = dt ? "✅ Token tallennettu" : "⚠️ Ei tokenia";
-      discogsTila.className   = "asetus-tila " + (dt ? "ok" : "puuttuu");
-      githubTila.textContent  = gt ? "✅ Token tallennettu" : "⚠️ Ei tokenia";
-      githubTila.className    = "asetus-tila " + (gt ? "ok" : "puuttuu");
-
-      // Tyhjennetään kentät turvallisuussyistä
-      asetuksetDiscogs.value  = "";
-      asetuksetGithub.value   = "";
+      // Tyhjennetään kenttä ja viesti
+      asetuksetGithub.value       = "";
       asetuksetViesti.textContent = "";
+
+      // Näytetään GitHub-tokenin tila
+      githubTila.textContent = GITHUB_TOKEN && GITHUB_TOKEN !== "LIITÄ_GITHUB_TOKEN_TÄHÄN"
+        ? "✅ Token asetettu koodissa" : "⚠️ Token puuttuu koodista";
+      githubTila.className = "asetus-tila " + (GITHUB_TOKEN && GITHUB_TOKEN !== "LIITÄ_GITHUB_TOKEN_TÄHÄN" ? "ok" : "puuttuu");
 
       asetuksetTausta.classList.add("auki");
       document.body.style.overflow = "hidden";
@@ -1173,36 +1128,10 @@
       document.body.style.overflow = "";
     }
 
-    // Tallentaa uudet tokenit selaimen muistiin
+    // Asetukset-modaalin tallenna-nappi
+    // (GitHub-token asetetaan koodiin, ei tallenneta selaimeen)
     asetuksetTallenna.addEventListener("click", () => {
-      const uusiDiscogs = asetuksetDiscogs.value.trim();
-      const uusiGithub  = asetuksetGithub.value.trim();
-      let tallennettu   = false;
-
-      if (uusiDiscogs) {
-        localStorage.setItem("discogs_token", uusiDiscogs);
-        tallennettu = true;
-      }
-
-      if (uusiGithub) {
-        localStorage.setItem("github_token", uusiGithub);
-        tallennettu = true;
-      }
-
-      if (tallennettu) {
-        asetuksetViesti.textContent = "✅ Tallennettu! Ladataan levyt uudelleen…";
-        setTimeout(() => {
-          suljeAsetukset();
-          // Jos Discogs-token vaihtui, ladataan levyt uudelleen
-          if (uusiDiscogs) {
-            kaikki_levyt = [];
-            naytaLevyt();
-            lataaKaikkiLevyt(uusiDiscogs);
-          }
-        }, 1000);
-      } else {
-        asetuksetViesti.textContent = "Ei muutoksia – kentät olivat tyhjiä.";
-      }
+      asetuksetViesti.textContent = "ℹ️ Muokkaa GitHub-token suoraan index.html-tiedostoon kohtaan GITHUB_TOKEN.";
     });
   </script>
 </body>
