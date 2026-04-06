@@ -1,0 +1,2 @@
+# vinyyli
+Vinyylikokoelman tietokanta
