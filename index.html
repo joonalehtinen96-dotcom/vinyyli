@@ -373,11 +373,27 @@
       letter-spacing: 0.05em;
     }
 
-    #modaali-kappaleet ol {
+    /* Puolen otsikko kappaleiden ryhmittelyssä */
+    .puoli-otsikko {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fff;
+      background: #1a1a1a;
+      border-radius: 4px;
+      padding: 2px 8px;
+      display: inline-block;
+      margin: 0.75rem 0 0.35rem;
+    }
+
+    .puoli-otsikko:first-child { margin-top: 0; }
+
+    /* Kappalelista puolen alla */
+    .puoli-lista {
       padding-left: 1.25rem;
       font-size: 0.88rem;
       color: #333;
       line-height: 1.8;
+      margin: 0 0 0.25rem;
     }
 
     /* =============================================
@@ -639,7 +655,7 @@
       <!-- Kappalelista -->
       <div id="modaali-kappaleet">
         <h3>Kappaleet</h3>
-        <ol id="kappaleet-lista"></ol>
+        <div id="kappaleet-lista"></div>
       </div>
 
       <!-- Hyllypaikan muokkaus -->
@@ -966,11 +982,71 @@
         });
         const data = await r.json();
         lista.innerHTML = "";
-        (data.tracklist || []).forEach(kappale => {
-          const li = document.createElement("li");
-          li.textContent = kappale.title + (kappale.duration ? ` (${kappale.duration})` : "");
-          lista.appendChild(li);
-        });
+
+        // =============================================
+        // KAPPALEIDEN RYHMITTELY PUOLEN MUKAAN
+        // Discogs käyttää position-kenttää (esim. A1, B2, C1).
+        // Ensimmäinen kirjain kertoo puolen: A = A-puoli jne.
+        // Jos position puuttuu, kappaleet näytetään ilman ryhmittelyä.
+        // =============================================
+        const puoliNimet = { A: "A-puoli", B: "B-puoli", C: "C-puoli", D: "D-puoli" };
+        const tracklist  = data.tracklist || [];
+
+        // Tarkistetaan onko kappaleilla position-tieto
+        const onPuolet = tracklist.some(k => /^[A-D]\d/i.test(k.position || ""));
+
+        if (onPuolet) {
+          // Ryhmitellään kappaleet puolen mukaan säilyttäen järjestys
+          const puolet = {}; // { "A": [...kappaleet], "B": [...] }
+          const jarjestys = []; // Puolien järjestys listalla
+
+          tracklist.forEach(kappale => {
+            const puoliKirjain = (kappale.position || "").toUpperCase().charAt(0);
+            const onTunnettuPuoli = ["A","B","C","D"].includes(puoliKirjain);
+            const avain = onTunnettuPuoli ? puoliKirjain : "?";
+
+            if (!puolet[avain]) {
+              puolet[avain] = [];
+              jarjestys.push(avain);
+            }
+            puolet[avain].push(kappale);
+          });
+
+          // Luodaan HTML jokaiselle puolelle
+          jarjestys.forEach(puoli => {
+            // Puolen otsikko (esim. "A-puoli")
+            const otsikko = document.createElement("div");
+            otsikko.className   = "puoli-otsikko";
+            otsikko.textContent = puolet[puoli] && puoli !== "?"
+              ? (puoliNimet[puoli] || `${puoli}-puoli`)
+              : "Muut";
+            lista.appendChild(otsikko);
+
+            // Kappalelista tämän puolen kappaleille
+            const ol = document.createElement("ol");
+            ol.className = "puoli-lista";
+
+            puolet[puoli].forEach(kappale => {
+              const li = document.createElement("li");
+              li.textContent = kappale.title + (kappale.duration ? ` (${kappale.duration})` : "");
+              ol.appendChild(li);
+            });
+
+            lista.appendChild(ol);
+          });
+
+        } else {
+          // Ei position-tietoa – näytetään kappaleet tavallisena listana
+          const ol = document.createElement("ol");
+          ol.className = "puoli-lista";
+          tracklist.forEach(kappale => {
+            const li = document.createElement("li");
+            li.textContent = kappale.title + (kappale.duration ? ` (${kappale.duration})` : "");
+            ol.appendChild(li);
+          });
+          lista.appendChild(ol);
+        }
+
       } catch {
         lista.innerHTML = "<li>Kappaleiden lataus epäonnistui.</li>";
       }
