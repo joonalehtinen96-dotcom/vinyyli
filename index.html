@@ -553,6 +553,103 @@
       display: none;
     }
 
+    /* =============================================
+       MOBIILIOPTIMOINTI
+       Mukautetaan asettelu pienille näytöille.
+       Breakpoint: max-width 600px = puhelin
+    ============================================= */
+    @media (max-width: 600px) {
+
+      /* Yläpalkki: pinotaan otsikko ja haku allekkain */
+      header {
+        padding: 1rem;
+        gap: 0.75rem;
+      }
+
+      header h1 {
+        font-size: 1.1rem;
+      }
+
+      /* Hakukenttä täyttää koko leveyden */
+      #haku-wrapper { width: 100%; }
+      #haku { width: 100%; }
+
+      /* Asetukset-nappi pienempi */
+      #asetukset-btn {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.82rem;
+      }
+
+      /* Suodattimet: pienempi padding, valikot pienenevät */
+      .suodattimet {
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+      }
+
+      .suodattimet label { display: none; } /* Piilotetaan labelit tilansäästämiseksi */
+
+      .suodattimet select {
+        font-size: 0.82rem;
+        padding: 0.35rem 0.5rem;
+        flex: 1;
+        min-width: 0;
+      }
+
+      #jarjestys-btn, #nollaa-btn {
+        font-size: 0.82rem;
+        padding: 0.35rem 0.6rem;
+      }
+
+      /* Levyruudukko: 2 korttia per rivi puhelimella */
+      #levyt-ruudukko {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+      }
+
+      /* Levykortin teksti pienempi */
+      .levy-nimi    { font-size: 0.82rem; }
+      .levy-artisti { font-size: 0.72rem; }
+      .levy-vuosi   { font-size: 0.72rem; }
+      .levy-hyllypaikka { font-size: 0.7rem; }
+      .levy-info    { padding: 0.5rem; gap: 0.15rem; }
+
+      /* Modaali täyttää koko näytön alhaalta */
+      #modaali-tausta { padding: 0; align-items: flex-end; }
+
+      #modaali {
+        border-radius: 16px 16px 0 0;
+        max-height: 92vh;
+      }
+
+      /* Modaalin kansikuva pienempi */
+      #modaali-kuva {
+        width: 110px;
+        height: 110px;
+      }
+
+      #modaali-sisalto { padding: 1rem; gap: 1rem; }
+      #modaali-kappaleet { padding: 0 1rem 1rem; }
+      #hyllypaikka-osio { padding: 0.75rem 1rem 1.25rem; }
+
+      /* Asetukset-modaali täyttää näytön */
+      #asetukset-modaali {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+      }
+
+      #asetukset-tausta { align-items: flex-end; padding: 0; }
+    }
+
+    /* Välitaso: tabletit (601–900px) – 3 korttia per rivi */
+    @media (min-width: 601px) and (max-width: 900px) {
+      #levyt-ruudukko {
+        grid-template-columns: repeat(3, 1fr);
+        padding: 1rem 1.25rem;
+        gap: 1rem;
+      }
+    }
+
     /* Tyhjä tulos -viesti */
     #ei-tuloksia {
       text-align: center;
