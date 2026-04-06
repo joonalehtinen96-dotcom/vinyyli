@@ -198,6 +198,24 @@
       color: #555;
     }
 
+    /* Filteröinti-ryhmä: label + select yhdessä paketissa */
+    .suodatin-ryhma {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Label näkyy vain mobiilissa (oletuksena piilotettu) */
+    .suodatin-label {
+      display: none;
+      font-size: 0.68rem;
+      color: #888;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
     .suodattimet select {
       padding: 0.4rem 0.75rem;
       border-radius: 6px;
@@ -580,24 +598,40 @@
         font-size: 0.82rem;
       }
 
-      /* Suodattimet: pienempi padding, valikot pienenevät */
+      /* Suodattimet mobiilissa: yksi nättiä rivi */
       .suodattimet {
-        padding: 0.75rem 1rem;
+        padding: 0.6rem 1rem;
         gap: 0.5rem;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
       }
 
-      .suodattimet label { display: none; } /* Piilotetaan labelit tilansäästämiseksi */
+      /* Näytetään filttereiden labelit pienen tekstin yläpuolella */
+      .suodatin-ryhma {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        flex-shrink: 0;
+      }
+
+      .suodatin-label {
+        display: block; /* Näytetään mobiilissa */
+      }
 
       .suodattimet select {
-        font-size: 0.82rem;
-        padding: 0.35rem 0.5rem;
-        flex: 1;
+        font-size: 0.8rem;
+        padding: 0.3rem 0.4rem;
         min-width: 0;
+        max-width: 90px;
       }
 
       #jarjestys-btn, #nollaa-btn {
-        font-size: 0.82rem;
-        padding: 0.35rem 0.6rem;
+        font-size: 0.8rem;
+        padding: 0.3rem 0.55rem;
+        flex-shrink: 0;
+        align-self: flex-end;
+        margin-bottom: 1px;
       }
 
       /* Levyruudukko: 2 korttia per rivi puhelimella */
@@ -614,31 +648,46 @@
       .levy-hyllypaikka { font-size: 0.7rem; }
       .levy-info    { padding: 0.5rem; gap: 0.15rem; }
 
-      /* Modaali täyttää koko näytön alhaalta */
-      #modaali-tausta { padding: 0; align-items: flex-end; }
+      /* Modaali: pieni pyöristetty ikkuna keskellä näyttöä */
+      #modaali-tausta {
+        padding: 0.75rem;
+        align-items: center;
+      }
 
       #modaali {
-        border-radius: 16px 16px 0 0;
-        max-height: 92vh;
+        border-radius: 14px;
+        max-height: 88vh;
+        width: 100%;
+      }
+
+      /* Sulkemisnappi selkeästi näkyviin */
+      #sulje-btn {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 10;
+        border-radius: 0 14px 0 0;
+        padding: 0.6rem 0.85rem;
       }
 
       /* Modaalin kansikuva pienempi */
       #modaali-kuva {
-        width: 110px;
-        height: 110px;
+        width: 90px;
+        height: 90px;
       }
 
-      #modaali-sisalto { padding: 1rem; gap: 1rem; }
-      #modaali-kappaleet { padding: 0 1rem 1rem; }
-      #hyllypaikka-osio { padding: 0.75rem 1rem 1.25rem; }
+      #modaali-teksti h2 { font-size: 1rem; }
+      #modaali-teksti p  { font-size: 0.82rem; }
+
+      #modaali-sisalto   { padding: 0.75rem 1rem; gap: 0.75rem; }
+      #modaali-kappaleet { padding: 0 1rem 0.75rem; }
+      #hyllypaikka-osio  { padding: 0.75rem 1rem 1rem; }
 
       /* Asetukset-modaali täyttää näytön */
       #asetukset-modaali {
         max-width: 100%;
-        border-radius: 16px 16px 0 0;
+        border-radius: 14px;
       }
-
-      #asetukset-tausta { align-items: flex-end; padding: 0; }
     }
 
     /* Välitaso: tabletit (601–900px) – 3 korttia per rivi */
@@ -819,17 +868,25 @@
 
     <!-- Suodattimet -->
     <div class="suodattimet">
-      <label>Vuosikymmen:</label>
-      <select id="vuosikymmen-filter"><option value="">Kaikki</option></select>
+      <div class="suodatin-ryhma">
+        <span class="suodatin-label">Vuosikymmen</span>
+        <select id="vuosikymmen-filter"><option value="">Kaikki</option></select>
+      </div>
 
-      <label>Vuosi:</label>
-      <select id="vuosi-filter"><option value="">Kaikki</option></select>
+      <div class="suodatin-ryhma">
+        <span class="suodatin-label">Vuosi</span>
+        <select id="vuosi-filter"><option value="">Kaikki</option></select>
+      </div>
 
-      <label>Genre:</label>
-      <select id="genre-filter"><option value="">Kaikki</option></select>
+      <div class="suodatin-ryhma">
+        <span class="suodatin-label">Genre</span>
+        <select id="genre-filter"><option value="">Kaikki</option></select>
+      </div>
 
-      <label>Artisti:</label>
-      <select id="artisti-filter"><option value="">Kaikki</option></select>
+      <div class="suodatin-ryhma">
+        <span class="suodatin-label">Artisti</span>
+        <select id="artisti-filter"><option value="">Kaikki</option></select>
+      </div>
 
       <!-- Nollaa-nappi – näkyy vain kun filtteri tai haku on aktiivinen -->
       <button id="nollaa-btn" style="display:none;">✕ Nollaa</button>
