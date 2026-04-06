@@ -40,6 +40,112 @@
       letter-spacing: 0.05em;
     }
 
+    /* Asetukset-nappi yläpalkissa */
+    #asetukset-btn {
+      background: none;
+      border: 1px solid #555;
+      color: #ccc;
+      border-radius: 6px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    #asetukset-btn:hover { background: #333; }
+
+    /* =============================================
+       ASETUKSET-MODAALI
+       Aukeaa kun käyttäjä klikkaa asetukset-nappia.
+       Täällä voi vaihtaa Discogs- ja GitHub-tokenin.
+    ============================================= */
+    #asetukset-tausta {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    #asetukset-tausta.auki { display: flex; }
+
+    #asetukset-modaali {
+      background: #fff;
+      border-radius: 14px;
+      max-width: 460px;
+      width: 100%;
+      padding: 1.75rem;
+    }
+
+    #asetukset-modaali h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .asetus-rivi {
+      margin-bottom: 1rem;
+    }
+
+    .asetus-rivi label {
+      display: block;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 0.35rem;
+    }
+
+    .asetus-rivi input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: monospace;
+    }
+
+    .asetus-tila {
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+    }
+
+    .asetus-tila.ok    { color: #27ae60; }
+    .asetus-tila.puuttuu { color: #e67e22; }
+
+    #asetukset-napit {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      justify-content: flex-end;
+    }
+
+    #asetukset-peruuta {
+      padding: 0.5rem 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    #asetukset-tallenna {
+      padding: 0.5rem 1.25rem;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    #asetukset-tallenna:hover { background: #333; }
+    #asetukset-viesti {
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+      color: #27ae60;
+      text-align: right;
+    }
+
     /* =============================================
        HAKUKENTTÄ
        Käyttäjä voi kirjoittaa tähän levyn nimen,
@@ -431,7 +537,37 @@
       placeholder="Hae levyä, artistia tai kappaletta…"
       autocomplete="off"
     />
+    <button id="asetukset-btn">⚙ Asetukset</button>
   </header>
+
+  <!-- =============================================
+       ASETUKSET-MODAALI
+       Aukeaa asetukset-napista. Täällä vaihdetaan
+       Discogs- ja GitHub-tokenit.
+  ============================================= -->
+  <div id="asetukset-tausta">
+    <div id="asetukset-modaali">
+      <h2>⚙ Asetukset</h2>
+
+      <div class="asetus-rivi">
+        <label for="asetukset-discogs-input">Discogs API -token</label>
+        <input type="password" id="asetukset-discogs-input" placeholder="Discogs token" autocomplete="off" />
+        <p class="asetus-tila" id="discogs-tila"></p>
+      </div>
+
+      <div class="asetus-rivi">
+        <label for="asetukset-github-input">GitHub Personal Access Token <small style="color:#aaa">(hyllypaikkoja varten)</small></label>
+        <input type="password" id="asetukset-github-input" placeholder="GitHub token" autocomplete="off" />
+        <p class="asetus-tila" id="github-tila"></p>
+      </div>
+
+      <div id="asetukset-napit">
+        <button id="asetukset-peruuta">Peruuta</button>
+        <button id="asetukset-tallenna">Tallenna</button>
+      </div>
+      <p id="asetukset-viesti"></p>
+    </div>
+  </div>
 
   <!-- =============================================
        API-AVAIMEN SYÖTTÖNÄKYMÄ
@@ -989,6 +1125,84 @@
       jarjestys_nouseva = !jarjestys_nouseva;
       jarjestysBtnEl.textContent = jarjestys_nouseva ? "A → Z" : "Z → A";
       naytaLevyt();
+    });
+
+    // =============================================
+    // ASETUKSET-MODAALI
+    // Käyttäjä voi vaihtaa Discogs- ja GitHub-tokenin
+    // ilman että tarvitsee tyhjentää selaimen muistia
+    // =============================================
+    const asetuksetBtn      = document.getElementById("asetukset-btn");
+    const asetuksetTausta   = document.getElementById("asetukset-tausta");
+    const asetuksetPeruuta  = document.getElementById("asetukset-peruuta");
+    const asetuksetTallenna = document.getElementById("asetukset-tallenna");
+    const asetuksetViesti   = document.getElementById("asetukset-viesti");
+    const asetuksetDiscogs  = document.getElementById("asetukset-discogs-input");
+    const asetuksetGithub   = document.getElementById("asetukset-github-input");
+    const discogsTila       = document.getElementById("discogs-tila");
+    const githubTila        = document.getElementById("github-tila");
+
+    // Avaa asetukset-modaali ja näyttää tokenien tilan
+    asetuksetBtn.addEventListener("click", () => {
+      const dt = localStorage.getItem("discogs_token");
+      const gt = localStorage.getItem("github_token");
+
+      // Näytetään onko token jo tallennettu
+      discogsTila.textContent = dt ? "✅ Token tallennettu" : "⚠️ Ei tokenia";
+      discogsTila.className   = "asetus-tila " + (dt ? "ok" : "puuttuu");
+      githubTila.textContent  = gt ? "✅ Token tallennettu" : "⚠️ Ei tokenia";
+      githubTila.className    = "asetus-tila " + (gt ? "ok" : "puuttuu");
+
+      // Tyhjennetään kentät turvallisuussyistä
+      asetuksetDiscogs.value  = "";
+      asetuksetGithub.value   = "";
+      asetuksetViesti.textContent = "";
+
+      asetuksetTausta.classList.add("auki");
+      document.body.style.overflow = "hidden";
+    });
+
+    // Sulkee asetukset ilman tallennusta
+    asetuksetPeruuta.addEventListener("click", suljeAsetukset);
+    asetuksetTausta.addEventListener("click", e => {
+      if (e.target === asetuksetTausta) suljeAsetukset();
+    });
+
+    function suljeAsetukset() {
+      asetuksetTausta.classList.remove("auki");
+      document.body.style.overflow = "";
+    }
+
+    // Tallentaa uudet tokenit selaimen muistiin
+    asetuksetTallenna.addEventListener("click", () => {
+      const uusiDiscogs = asetuksetDiscogs.value.trim();
+      const uusiGithub  = asetuksetGithub.value.trim();
+      let tallennettu   = false;
+
+      if (uusiDiscogs) {
+        localStorage.setItem("discogs_token", uusiDiscogs);
+        tallennettu = true;
+      }
+
+      if (uusiGithub) {
+        localStorage.setItem("github_token", uusiGithub);
+        tallennettu = true;
+      }
+
+      if (tallennettu) {
+        asetuksetViesti.textContent = "✅ Tallennettu! Ladataan levyt uudelleen…";
+        setTimeout(() => {
+          suljeAsetukset();
+          // Jos Discogs-token vaihtui, ladataan levyt uudelleen
+          if (uusiDiscogs) {
+            kaikki_levyt = [];
+            naytaLevyt();
+            lataaKaikkiLevyt(uusiDiscogs);
+          }
+        }, 1000);
+      } else {
+        asetuksetViesti.textContent = "Ei muutoksia – kentät olivat tyhjiä.";
+      }
     });
   </script>
 </body>
