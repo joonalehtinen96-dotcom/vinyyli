@@ -608,6 +608,9 @@
 
     <!-- Suodattimet -->
     <div class="suodattimet">
+      <label>Vuosikymmen:</label>
+      <select id="vuosikymmen-filter"><option value="">Kaikki</option></select>
+
       <label>Vuosi:</label>
       <select id="vuosi-filter"><option value="">Kaikki</option></select>
 
@@ -684,14 +687,14 @@
     // 2) Discogs API -token
     //    Luo uusi osoitteessa: Discogs → Settings → Developers → Generate Token
     //    Liitä token lainausmerkkien väliin alla:
-    const DISCOGS_TOKEN = "AtDvnoODsBUBsnFxjvxuZUijSKlLYSirBJLfgfER";
+    const DISCOGS_TOKEN = "LIITÄ_DISCOGS_TOKEN_TÄHÄN";
     //
     // 3) GitHub-asetukset (hyllypaikkoja varten, voi täyttää myöhemmin)
     //    GitHub Personal Access Token luodaan:
     //    GitHub → Settings → Developer settings → Personal access tokens
     const GITHUB_OMISTAJA = "";  // esim. "joonalehtinen96-dotcom"
     const GITHUB_REPO     = "";  // esim. "vinyyli"
-    const GITHUB_TOKEN    = "LIITÄ_GITHUB_TOKEN_TÄHÄN";
+    const GITHUB_TOKEN    = "AtDvnoODsBUBsnFxjvxuZUijSKlLYSirBJLfgfER";
     //
     // *** ÄLÄ MUUTA MITÄÄN TÄMÄN RIVIN ALAPUOLELLA ***
     // =============================================
@@ -725,7 +728,8 @@
     const modaaliTausta = document.getElementById("modaali-tausta");
     const suljeBtnEl    = document.getElementById("sulje-btn");
     const tallennaBtnEl = document.getElementById("tallenna-btn");
-    const vuosiFilter   = document.getElementById("vuosi-filter");
+    const vuosikymmenFilter = document.getElementById("vuosikymmen-filter");
+    const vuosiFilter       = document.getElementById("vuosi-filter");
     const genreFilter   = document.getElementById("genre-filter");
     const artistiFilter = document.getElementById("artisti-filter");
     const jarjestysBtnEl= document.getElementById("jarjestys-btn");
@@ -843,6 +847,19 @@
       const genret   = [...new Set(kaikki_levyt.flatMap(r => r.basic_information.genres || []))].sort();
       const artistit = [...new Set(kaikki_levyt.map(r => r.basic_information.artists?.[0]?.name).filter(Boolean))].sort();
 
+      // Lasketaan vuosikymmenet levyjen vuosista (esim. 1984 → "1980-luku")
+      const vuosikymmenet = [...new Set(
+        vuodet.map(v => Math.floor(v / 10) * 10)
+      )].sort((a, b) => b - a);
+
+      // Täytetään vuosikymmen-valikko
+      vuosikymmenet.forEach(vk => {
+        const opt = document.createElement("option");
+        opt.value = vk;
+        opt.textContent = `${vk}-luku`;
+        vuosikymmenFilter.appendChild(opt);
+      });
+
       taytaValikko(vuosiFilter,   vuodet);
       taytaValikko(genreFilter,   genret);
       taytaValikko(artistiFilter, artistit);
@@ -864,13 +881,14 @@
     // valinnat, ja palauttaa vastaavat levyt
     // =============================================
     function suodataLevyt() {
-      const hakuTeksti = hakuKentta.value.toLowerCase();
-      const vuosi      = vuosiFilter.value;
-      const genre      = genreFilter.value;
-      const artisti    = artistiFilter.value;
+      const hakuTeksti  = hakuKentta.value.toLowerCase();
+      const vuosikymmen = vuosikymmenFilter.value;
+      const vuosi       = vuosiFilter.value;
+      const genre       = genreFilter.value;
+      const artisti     = artistiFilter.value;
 
       return kaikki_levyt.filter(r => {
-        const info    = r.basic_information;
+        const info        = r.basic_information;
         const artistiNimi = info.artists?.[0]?.name || "";
 
         // Suodatus hyllypaikalla, artistilla, albumilla, kappaleilla
@@ -879,11 +897,15 @@
           info.title.toLowerCase().includes(hakuTeksti) ||
           (hyllypaikat[r.id] || "").toLowerCase().includes(hakuTeksti);
 
-        const vuosiOsuma   = !vuosi  || String(info.year) === vuosi;
-        const genreOsuma   = !genre  || (info.genres || []).includes(genre);
+        // Vuosikymmen: tarkistetaan kuuluuko levyn vuosi valittuun vuosikymmeneen
+        const vuosikymmenOsuma = !vuosikymmen ||
+          Math.floor(info.year / 10) * 10 === Number(vuosikymmen);
+
+        const vuosiOsuma   = !vuosi   || String(info.year) === vuosi;
+        const genreOsuma   = !genre   || (info.genres || []).includes(genre);
         const artistiOsuma = !artisti || artistiNimi === artisti;
 
-        return hakuOsuma && vuosiOsuma && genreOsuma && artistiOsuma;
+        return hakuOsuma && vuosikymmenOsuma && vuosiOsuma && genreOsuma && artistiOsuma;
       });
     }
 
@@ -1148,8 +1170,9 @@
     // Aina kun käyttäjä kirjoittaa tai valitsee
     // jotain, näytetään levyt uudelleen suodatettuna
     // =============================================
-    hakuKentta.addEventListener("input",    naytaLevyt);
-    vuosiFilter.addEventListener("change",  naytaLevyt);
+    hakuKentta.addEventListener("input",       naytaLevyt);
+    vuosikymmenFilter.addEventListener("change", naytaLevyt);
+    vuosiFilter.addEventListener("change",       naytaLevyt);
     genreFilter.addEventListener("change",  naytaLevyt);
     artistiFilter.addEventListener("change",naytaLevyt);
 
