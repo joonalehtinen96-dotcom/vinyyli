@@ -764,6 +764,12 @@
         <div id="kappaleet-lista"></div>
       </div>
 
+      <!-- Discogs Notes -muistiinpano -->
+      <div id="modaali-notes" style="display:none; padding: 0 1.5rem 1rem; border-top: 1px solid #eee;">
+        <h3 style="font-size:0.9rem; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem;">Muistiinpanot (Discogs Notes)</h3>
+        <p class="notes-sisalto" style="font-size:0.88rem; color:#444; line-height:1.6; white-space:pre-wrap;"></p>
+      </div>
+
       <!-- Hyllypaikan muokkaus -->
       <div id="hyllypaikka-osio">
         <label for="hyllypaikka-input">Hyllypaikka</label>
@@ -811,6 +817,7 @@
     let kaikki_levyt      = [];   // Kaikki Discogsista haetut levyt
     let hyllypaikat       = {};   // Hyllypaikat: { "levy_id": "Hylly A paikka 3" }
     let kappaleet_cache   = {};   // Kappaleet: { "levy_id": ["Kappale 1", "Kappale 2"] }
+    let notes_cache       = {};   // Muistiinpanot: { "levy_id": "vapaa teksti" }
     let github_sha        = null; // GitHub vaatii tiedoston SHA:n päivitystä varten
     let avattu_levy       = null; // Tällä hetkellä avattu levy modaalissa
     let jarjestys_nouseva = true; // Järjestetäänkö A→Z vai Z→A
@@ -960,7 +967,7 @@
 
       // Suodatetaan vain ne levyt joita ei vielä ole välimuistissa
       const ladattavat = kaikki_levyt.filter(r => !kappaleet_cache[r.id]);
-      const erakoko = 4; // Montako levyä ladataan samanaikaisesti
+      const erakoko = 15; // Montako levyä ladataan samanaikaisesti
       let ladattu = 0;
 
       for (let i = 0; i < ladattavat.length; i += erakoko) {
@@ -975,6 +982,8 @@
             if (r.ok) {
               const data = await r.json();
               kappaleet_cache[levy.id] = (data.tracklist || []).map(k => k.title.toLowerCase());
+              // Tallennetaan myös notes-muistiinpano välimuistiin
+              notes_cache[levy.id] = (data.notes || "").toLowerCase();
             }
           } catch {
             // Ohitetaan virhe, jatketaan seuraavaan
@@ -987,7 +996,7 @@
 
         // Pieni tauko erien välillä rate limit -rajoituksen takia
         if (i + erakoko < ladattavat.length) {
-          await new Promise(res => setTimeout(res, 300));
+          await new Promise(res => setTimeout(res, 100));
         }
       }
 
@@ -1069,18 +1078,24 @@
         const kappaleetOsuma = (kappaleet_cache[r.id] || [])
           .some(k => k.includes(hakuTeksti));
 
+        // Haetaan myös notes-muistiinpanosta (esim. itse lisätty genre)
+        const notesOsuma = (notes_cache[r.id] || "").includes(hakuTeksti);
+
         const hakuOsuma = !hakuTeksti ||
           artistiNimi.toLowerCase().includes(hakuTeksti) ||
           info.title.toLowerCase().includes(hakuTeksti) ||
           (hyllypaikat[r.id] || "").toLowerCase().includes(hakuTeksti) ||
-          kappaleetOsuma;
+          kappaleetOsuma ||
+          notesOsuma;
 
         // Vuosikymmen: tarkistetaan kuuluuko levyn vuosi valittuun vuosikymmeneen
         const vuosikymmenOsuma = !vuosikymmen ||
           Math.floor(info.year / 10) * 10 === Number(vuosikymmen);
 
         const vuosiOsuma   = !vuosi   || String(info.year) === vuosi;
-        const genreOsuma   = !genre   || (info.genres || []).includes(genre);
+        // Genre-suodatus tarkistaa myös notes-muistiinpanon
+        const genreOsuma = !genre || (info.genres || []).includes(genre) ||
+          (notes_cache[r.id] || "").includes(genre.toLowerCase());
         const artistiOsuma = !artisti || artistiNimi === artisti;
 
         return hakuOsuma && vuosikymmenOsuma && vuosiOsuma && genreOsuma && artistiOsuma;
@@ -1182,6 +1197,18 @@
       const lista = document.getElementById("kappaleet-lista");
       lista.innerHTML = "<li>Ladataan…</li>";
 
+      // Näytetään notes jos jo ladattu välimuistista
+      const notesEl = document.getElementById("modaali-notes");
+      const notesArvo = notes_cache[release.id];
+      if (notesEl) {
+        if (notesArvo) {
+          notesEl.style.display = "block";
+          notesEl.querySelector(".notes-sisalto").textContent = notesArvo;
+        } else {
+          notesEl.style.display = "none";
+        }
+      }
+
       // Avataan modaali
       modaaliTausta.classList.add("auki");
       document.body.style.overflow = "hidden"; // Estetään taustascroolaus
@@ -1193,6 +1220,19 @@
         });
         const data = await r.json();
         lista.innerHTML = "";
+
+        // Päivitetään notes-osio nyt kun data on ladattu
+        const notesElFetch = document.getElementById("modaali-notes");
+        if (notesElFetch) {
+          if (data.notes) {
+            notesElFetch.style.display = "block";
+            notesElFetch.querySelector(".notes-sisalto").textContent = data.notes;
+            // Tallennetaan myös välimuistiin
+            notes_cache[release.id] = data.notes.toLowerCase();
+          } else {
+            notesElFetch.style.display = "none";
+          }
+        }
 
         // =============================================
         // KAPPALEIDEN RYHMITTELY PUOLEN MUKAAN
